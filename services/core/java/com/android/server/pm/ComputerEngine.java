@@ -1611,12 +1611,7 @@ public class ComputerEngine implements Computer {
         return result;
     }
 
-    private static native boolean isDebuggable();
-
     public static boolean isMicrogSigned(AndroidPackage p) {
-        if (!isDebuggable()) {
-            return false;
-        }
 
         // Allowlist the following apps:
         // * com.android.vending - microG Companion
@@ -1680,33 +1675,28 @@ public class ComputerEngine implements Computer {
             flags |= MATCH_ANY_USER;
         }
 
-        final PackageUserStateInternal state = ps.getUserStateOrDefault(userId);
+  	final PackageUserStateInternal state = ps.getUserStateOrDefault(userId);
         AndroidPackage p = ps.getPkg();
         if (p != null) {
             // Compute GIDs only if requested
             final int[] gids = (flags & PackageManager.GET_GIDS) == 0 ? EMPTY_INT_ARRAY
                     : mPermissionManager.getGidsForUid(UserHandle.getUid(userId, ps.getAppId()));
             // Compute granted permissions only if package has requested permissions
-            final Set<String> permissions = (((flags & PackageManager.GET_PERMISSIONS) == 0
-                        && !requestsFakeSignature(p))
+            final Set<String> permissions = ((flags & PackageManager.GET_PERMISSIONS) == 0
                     || ArrayUtils.isEmpty(p.getRequestedPermissions())) ? Collections.emptySet()
                     : mPermissionManager.getGrantedPermissions(ps.getPackageName(), userId);
-
-            PackageInfo packageInfo = mayFakeSignature(p, PackageInfoUtils.generate(p, gids, flags,
+            PackageInfo packageInfo = PackageInfoUtils.generate(p, gids, flags,
                     state.getFirstInstallTime(), ps.getLastUpdateTime(), permissions, state, userId,
-                    ps),
-                    permissions);
-
+                    ps);
             if (packageInfo == null) {
                 return null;
             }
-
             packageInfo.packageName = packageInfo.applicationInfo.packageName =
                     resolveExternalPackageName(p);
 
-            generateFakeSignature(p).ifPresent(fakeSignature -> {
+	    generateFakeSignature(p).ifPresent(fakeSignature -> {
                 packageInfo.signatures = new Signature[]{fakeSignature};
-                try {
+		 try {
                     packageInfo.signingInfo = new SigningInfo(
                             new SigningDetails(
                                     packageInfo.signatures,
